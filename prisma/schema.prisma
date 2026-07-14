@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum NodeKind {
+  SONG
+  COMPOSER
+  GAME
+}
+
+enum RelationshipType {
+  COMPOSED_BY
+  INCLUDED_IN
+}
+
+model Node {
+  id                   String         @id @default(cuid())
+  kind                 NodeKind
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  song                 Song?
+  composer             Composer?
+  game                 Game?
+  outgoingRelationships Relationship[] @relation("RelationshipSource")
+  incomingRelationships Relationship[] @relation("RelationshipTarget")
+}
+
+model Song {
+  id          String   @id @default(cuid())
+  title       String
+  artistCredit String?
+  nodeId      String   @unique
+  node        Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([title])
+}
+
+model Composer {
+  id        String   @id @default(cuid())
+  name      String
+  nodeId    String   @unique
+  node      Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model Game {
+  id        String   @id @default(cuid())
+  title     String
+  nodeId    String   @unique
+  node      Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([title])
+}
+
+model Relationship {
+  id           String           @id @default(cuid())
+  type         RelationshipType
+  sourceNodeId String
+  sourceNode   Node             @relation("RelationshipSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNodeId String
+  targetNode   Node             @relation("RelationshipTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  createdBy    String           @default("SYSTEM")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([type, sourceNodeId, targetNodeId])
+  @@index([sourceNodeId, type])
+  @@index([targetNodeId, type])
+}
